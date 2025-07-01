@@ -1,0 +1,53 @@
+const request = require('supertest');
+const mongoose = require('mongoose');
+const { MongoMemoryServer } = require('mongodb-memory-server');
+const app = require('../../server'); // Update this export
+const Task = require('../../models/Task');
+
+let mongoServer;
+
+beforeAll(async () => {
+  mongoServer = await MongoMemoryServer.create();
+  await mongoose.connect(mongoServer.getUri());
+});
+
+afterAll(async () => {
+  await mongoose.disconnect();
+  await mongoServer.stop();
+});
+
+afterEach(async () => {
+  await Task.deleteMany(); // Clean up after each test
+});
+
+describe('Task API', () => {
+  it('should create a task', async () => {
+    const res = await request(app)
+      .post('/api/tasks')
+      .send({ title: 'Test Task', description: 'Test Desc' });
+
+    expect(res.statusCode).toBe(201);
+    expect(res.body.title).toBe('Test Task');
+  });
+
+  it('should get all tasks', async () => {
+    await Task.create({ title: 'One' });
+    const res = await request(app).get('/api/tasks');
+    expect(res.body.length).toBe(1);
+  });
+
+  it('should update a task', async () => {
+    const task = await Task.create({ title: 'To Update' });
+    const res = await request(app)
+      .put(`/api/tasks/${task._id}`)
+      .send({ completed: true });
+
+    expect(res.body.completed).toBe(true);
+  });
+
+  it('should delete a task', async () => {
+    const task = await Task.create({ title: 'To Delete' });
+    const res = await request(app).delete(`/api/tasks/${task._id}`);
+    expect(res.body.message).toMatch(/deleted/i);
+  });
+});
