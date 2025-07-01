@@ -1,0 +1,17 @@
+const Task = require('../../models/Task');
+
+describe('Task Model', () => {
+  it('should require a title', async () => {
+    try {
+      const task = new Task({ description: 'Missing title' });
+      await task.validate();
+    } catch (err) {
+      expect(err.errors.title).toBeDefined();
+    }
+  });
+
+  it('should default completed to false', async () => {
+    const task = new Task({ title: 'Test' });
+    expect(task.completed).toBe(false);
+  });
+});
